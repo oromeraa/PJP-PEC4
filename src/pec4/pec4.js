@@ -146,22 +146,21 @@ class GameLogic {
         if ((toRow + toCol) % 2 === 0)
             return false;
 
-        // está libre la casilla de destino?
+        // está ocupada la casilla de destino?
         if (!this.board.isEmpty(toRow, toCol))
             return false;
 
-        //TODO: validar si es de captura
+        const verticalDir = fromRow - toRow; // +1 arriba, -1 abajo
+        const horizontalDir = fromCol - toCol; // +1 izquierda, -1 derecha   
 
         // es un movimiento simple?
-        const verticalDir = fromRow - toRow; // +1 arriba, -1 abajo
-        const horizontalDir = fromCol - toCol; // +1 izquierda, -1 derecha        
-        const pieceVerticalDir = pieceToMove.player === 'black' ? -1 : 1; // negras hacia abajo, blancas hacia arriba
-
         if (Math.abs(horizontalDir) !== 1 || Math.abs(verticalDir) !== 1)
             return false;
 
         // es un peón?
         if (!pieceToMove.isKing) {
+            // para peones: negras hacia abajo, blancas hacia arriba    
+            const pieceVerticalDir = pieceToMove.player === 'black' ? -1 : 1;
             // va en dirección correcta?
             if (verticalDir !== pieceVerticalDir)
                 return false;
@@ -172,15 +171,152 @@ class GameLogic {
     }
 
     isValidCapture(fromRow, fromCol, toRow, toCol) {
+        const pieceToMove = this.board.getPiece(fromRow, fromCol);
 
+        //// Reciclamos código
+        // validar si hay ficha en esa casilla seleccionada
+        if (pieceToMove === null)
+            return false;
+        // pertenece al jugador actual?
+        if (pieceToMove.player !== this.config.currentPlayer)
+            return false;
+        // está fuera del tablero?
+        if (toRow < 0 || toRow >= this.board.size || toCol < 0 || toCol >= this.board.size)
+            return false;
+        // es una casilla oscura?
+        if ((toRow + toCol) % 2 === 0)
+            return false;
+
+        // está ocupada la casilla de destino?
+        if (!this.board.isEmpty(toRow, toCol))
+            return false;
+
+        // es una ficha en medio y es rival?
+        const rivalRow = (fromRow + toRow) / 2;
+        const rivalCol = (fromCol + toCol) / 2;
+        const pieceToCapture = this.board.getPiece(rivalRow, rivalCol);
+        if (pieceToCapture === null || pieceToCapture.player === pieceToMove.player)
+            return false;
+
+        const verticalDir = fromRow - toRow; // +2 arriba, -2 abajo
+        const horizontalDir = fromCol - toCol; // +2 izquierda, -2 derecha  
+
+        // es un salto de 2 casillas?
+        if (Math.abs(horizontalDir) !== 2 || Math.abs(verticalDir) !== 2)
+            return false;
+
+        // es un peón?
+        if (!pieceToMove.isKing) {
+            // para peones: negras hacia abajo, blancas hacia arriba
+            const pieceVerticalDir = pieceToMove.player === 'black' ? -2 : 2;
+            // va en dirección correcta?
+            if (verticalDir !== pieceVerticalDir)
+                return false;
+        }
+
+        // entonces es válido
+        return true;
     }
 
     movePiece(fromRow, fromCol, toRow, toCol) {
+        const pieceToMove = this.board.getPiece(fromRow, fromCol);
+
+        if (pieceToMove === null || pieceToMove.player !== this.config.currentPlayer)
+            return false;
+
+        const isRegularMove = this.isValidMove(fromRow, fromCol, toRow, toCol);
+        const isCaptureMove = this.isValidCapture(fromRow, fromCol, toRow, toCol);
+
+        // es un movimiento válido?
+        if (!isRegularMove && !isCaptureMove)
+            return false;
+
+        // si es una captura hay que eliminar al ficha rival
+        if (isCaptureMove) {
+            const rivalRow = (fromRow + toRow) / 2;
+            const rivalCol = (fromCol + toCol) / 2;
+            this.board.setPiece(rivalRow, rivalCol, null);
+        }
+
+        // movemos la ficha a la nueva posición
+        this.board.setPiece(toRow, toCol, pieceToMove);
+
+        // eliminamos la ficha de la posición original
+        this.board.setPiece(fromRow, fromCol, null);
+
+        // si es un peón que llega al final del tablero, lo promocionamos a dama
+        const blackOrigin = 0;
+        const whiteOrigin = this.board.size - 1;
+        if (pieceToMove.player === 'black' && toRow === whiteOrigin) {
+            pieceToMove.promote();
+        }
+        if (pieceToMove.player === 'white' && toRow === blackOrigin) {
+            pieceToMove.promote();
+        }
+
+        // cambiamos de turno
+        this.config.switchPlayer();
+
+        // comprobamos si el juego ha terminado
+        this.checkGameOver();
+
+        return true;
     }
 
     checkGameOver() {
+        // // rastreamos todas las fichas
+        // const allPieces = this.board.flat().filter(cell => cell !== null);
+        // const blackPieces = allPieces.filter(cell => cell.player === 'black').length;
+        // const whitePieces = allPieces.length - blackPieces;
+
+        // // si no hay fichas de un jugador, el otro gana
+        // if (blackPieces === 0) {
+        //     this.gameOver = true;
+        //     this.winner = 'white';
+        // } else if (whitePieces === 0) {
+        //     this.gameOver = true;
+        //     this.winner = 'black';
+        // }
+
+        function hasAnyValidMove(row, col) {
+            return this.isValidMove(row, col, row + 1, col + 1) ||
+                this.isValidMove(row, col, row + 1, col - 1) ||
+                this.isValidMove(row, col, row - 1, col + 1) ||
+                this.isValidMove(row, col, row - 1, col - 1);
+        }
+
+        function hasAnyValidCapture(row, col) {
+            return this.isValidCapture(row, col, row + 2, col + 2) ||
+                this.isValidCapture(row, col, row + 2, col - 2) ||
+                this.isValidCapture(row, col, row - 2, col + 2) ||
+                this.isValidCapture(row, col, row - 2, col - 2);
+        }
+
+        for (let row = 0; row < this.board.size; row++) {
+            for (let col = 0; col < this.board.size; col++) {
+                const piece = this.board.getPiece(row, col);
+                if (piece) {
+                    if (piece.player === 'white') {
+                        whitePieces++;
+                        if (!whiteHasMoves)
+                            whiteHasMoves = hasAnyValidMove(row, col);
+                        if (!whiteHasCaptures)
+                            whiteHasCaptures = hasAnyValidCapture(row, col);
+                    } else {
+                        blackPieces++;
+                        if (!blackHasMoves)
+                            blackHasMoves = hasAnyValidMove(row, col);
+                        if (!blackHasCaptures)
+                            blackHasCaptures = hasAnyValidCapture(row, col);
+                    }
+                }
+            }
+        }
+
+
     }
 }
+
 
 export default GameLogic
 
