@@ -13,11 +13,9 @@ export class Piece {
 
 // Exercise 1: GameConfig (1p)
 export class GameConfig {
-
-    size;
-    currentPlayer;
-
     constructor() {
+        this.size;
+        this.currentPlayer;
         this.initialize();
     }
 
@@ -47,10 +45,6 @@ export class GameConfig {
 
 // Exercise 2: Board (1.5p)
 export class Board {
-
-    size;
-    board;
-
     constructor(gameConfig) {
         this.gameConfig = gameConfig;
         this.size = this.gameConfig.size;
@@ -112,13 +106,6 @@ export class Board {
 
 // Exercise 3: GameLogic (3p)
 class GameLogic {
-
-    board;
-    config;
-    selectedPiece;
-    gameOver;
-    winner;
-
     constructor(board, config) {
         this.board = board;
         this.config = config;
@@ -334,15 +321,87 @@ export default GameLogic
 // Exercise 4.1: UI (2 points)
 export class UI {
     constructor(gameLogic, onRestart) {
+        this.gameLogic = gameLogic;
+        this.gameBoard = document.getElementById('game-board');
+        this.onRestart = onRestart;
+
+        this.setupSizeInput();
+        this.setupRestartButton();
     }
 
     setupSizeInput() {
+        // si ya existe el input, no lo creamos de nuevo
+        if (document.getElementById('board-size')) return;
+
+        // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
+        const container = document.querySelector('.container');
+
+        // creamos el div de control
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'controls';
+        controlsDiv.style = 'margin-top: 20px;';
+
+        // creamos el input 
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = 'board-size';
+        input.min = '4';
+        input.max = '16';
+        input.value = '8';
+        input.style.width = '60px';
+        input.style.marginLeft = '10px';
+        input.addEventListener('change', (event) => {
+            const newSize = parseInt(event.target.value);
+            // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
+            this.gameLogic.config.setSize(newSize);
+        });
+
+        // creamos el label
+        const label = document.createElement('label');
+        label.htmlFor = 'board-size';
+        label.textContent = 'Board size: ';
+
+        // insertamos el input en el div de control
+        controlsDiv.appendChild(label);
+        controlsDiv.appendChild(input);
+
+        // insertamos los controles en el contenedor
+        container.appendChild(controlsDiv);
     }
 
     setupRestartButton() {
+        // si ya existe el boton, no lo creamos de nuevo
+        if (document.getElementById('restart')) return;
+
+        const restartButton = document.createElement('button');
+        restartButton.id = 'restart';
+        restartButton.textContent = 'Restart Match';
+        restartButton.style.width = '60px';
+        restartButton.style.marginLeft = '10px';
+        restartButton.addEventListener('click', () => {
+            // eliminamos los elementos del tablero
+            const gameStatus = document.getElementById('game-status');
+            if (gameStatus) gameStatus.remove();
+            const currentPlayer = document.getElementById('current-player');
+            if (currentPlayer) currentPlayer.remove();
+
+            // validamos por si no se ha pasado el callback
+            if (this.onRestart && typeof this.onRestart === 'function') this.onRestart();
+        });
+
+        document.getElementById('controls').appendChild(restartButton);
     }
 
     renderBoard() {
+        // eliminamos el tablero si existe
+        this.gameBoard.innerHTML = '';
+
+        // creamos el tablero
+        this.gameBoard.classList.add('game-board', 'checkerboard');
+
+        const boardSize = this.gameLogic.config.size;
+
+
     }
 
     // Exercise 4.2: UI (1.5 points)
