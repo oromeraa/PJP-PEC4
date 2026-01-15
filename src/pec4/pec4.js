@@ -348,8 +348,6 @@ export class UI {
         input.min = '4';
         input.max = '16';
         input.value = '8';
-        input.style.width = '60px';
-        input.style.marginLeft = '10px';
         input.addEventListener('change', (event) => {
             const newSize = parseInt(event.target.value);
             // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
@@ -376,8 +374,6 @@ export class UI {
         const restartButton = document.createElement('button');
         restartButton.id = 'restart';
         restartButton.textContent = 'Restart Match';
-        restartButton.style.width = '60px';
-        restartButton.style.marginLeft = '10px';
         restartButton.addEventListener('click', () => {
             // eliminamos los elementos del tablero
             const gameStatus = document.getElementById('game-status');
@@ -404,6 +400,7 @@ export class UI {
         for (let row = 0; row < boardSize; row++) {
             for (let col = 0; col < boardSize; col++) {
                 const cell = document.createElement('div');
+                cell.id = `cell-${row}-${col}`;
 
                 cell.classList.add('cell');
                 if ((row + col) % 2 === 0) cell.classList.add('light');
@@ -414,9 +411,10 @@ export class UI {
 
                 const piece = this.gameLogic.board.getPiece(row, col);
                 if (piece) {
-                    const pieceElement = document.createElement('div');
-                    pieceElement.classList.add('piece', piece.player);
-                    cell.appendChild(pieceElement);
+                    const pieceDiv = document.createElement('div');
+                    pieceDiv.classList.add('piece', piece.player);
+                    if (piece.isKing) pieceDiv.classList.add('king');
+                    cell.appendChild(pieceDiv);
                 }
 
                 if (this.gameLogic.selectedPiece && this.gameLogic.selectedPiece.row === row && this.gameLogic.selectedPiece.col === col) {
@@ -431,24 +429,61 @@ export class UI {
             }
         }
 
+        this.showCurrentPlayer();
     }
 
     // Exercise 4.2: UI (1.5 points)
     handleCellClick(row, col) {
+        const piece = this.gameLogic.board.getPiece(row, col);
+        const selectedPiece = this.gameLogic.selectedPiece;
+
+
     }
 
     showGameStatus(status) {
+        let statusDiv = document.getElementById('game-status');
+        if (statusDiv) statusDiv.innerHTML = '';
+        else {
+            statusDiv = document.createElement('div');
+            statusDiv.id = 'game-status';
+        }
+        const winner = this.gameLogic.winner === 'white' ? 'White' : 'Black';
+        statusDiv.textContent = `${winner} wins!`;
+        this.gameBoard.insertAdjacentElement('afterend', statusDiv);
+
+        setTimeout(() => {
+            const msg = document.getElementById('game-status');
+            if (msg) msg.remove();
+        }, 5000);
+
     }
 
     showCurrentPlayer() {
+        let playerDiv = document.getElementById('current-player');
+        if (playerDiv) playerDiv.innerHTML = '';
+        else {
+            playerDiv = document.createElement('div');
+            playerDiv.id = 'current-player';
+        }
+
+        const player = this.gameLogic.config.currentPlayer === 'white' ? 'White' : 'Black';
+        playerDiv.textContent = `Turn: ${player}`;
     }
 }
 
 // Exercise 5: Game (1 point)
 export class Game {
     constructor() {
+        this.config = null;
+        this.board = null;
+        this.gameLogic = null;
+        this.ui = null;
     }
 
     start() {
+        const boardSize = document.getElementById('board-size').value;
+        this.config = new GameConfig();
+        if (boardSize) this.config.setSize(boardSize);
+        this.config.initialize();
     }
 }
