@@ -368,10 +368,10 @@ export class UI {
 
     setupRestartButton() {
         // Clear existing button
-        const existingButton = document.getElementById('restart');
-        if (existingButton) existingButton.remove();
+        let restartButton = document.getElementById('restart');
+        if (restartButton) restartButton.remove();
 
-        const restartButton = document.createElement('button');
+        restartButton = document.createElement('button');
         restartButton.id = 'restart';
         restartButton.textContent = 'Restart Match';
         restartButton.addEventListener('click', () => {
@@ -441,33 +441,51 @@ export class UI {
     handleCellClick(row, col) {
         const piece = this.gameLogic.board.getPiece(row, col);
         const selectedPiece = this.gameLogic.selectedPiece;
+        // OJO que hay que recordar que selectedPiece almacena las coordenadas de la ficha seleccionada, si no es null
 
-        if (!selectedPiece || selectedPiece.player !== this.gameLogic.config.currentPlayer) {
+        // si la casilla está vacía no hacemos nada
+        if (!selectedPiece && piece) {
+            if (piece.player === this.gameLogic.config.currentPlayer) {
+                this.gameLogic.selectedPiece = { row, col };
+            }
+        } else {
+            const selectedPieceRow = selectedPiece.row;
+            const selectedPieceCol = selectedPiece.col;
 
+            // deseleccionamos la ficha
+            if (selectedPieceRow === row && selectedPieceCol === col) {
+                this.gameLogic.selectedPiece = null;
+            } else {
+                // intentamos mover la ficha
+                const isMoveValid = this.gameLogic.movePiece(selectedPieceRow, selectedPieceCol, row, col);
+                // si lo hemos conseguido la deseleccionamos
+                if (isMoveValid) {
+                    this.gameLogic.selectedPiece = null;
+                }
+                // checkeamos después de mover
+                if (this.gameLogic.gameOver) {
+                    this.showGameStatus(this.gameLogic.winner);
+                }
+            }
         }
 
         this.renderBoard();
-
-        if (this.gameLogic.gameOver) {
-            this.showGameStatus(this.gameLogic.winner);
-        }
     }
 
     showGameStatus(status) {
-        const existingStatus = document.getElementById('game-status');
-        if (existingStatus) existingStatus.remove();
+        // No tiene porque pasar ya que supuestamente es temporal, pero por si lo que fuera existiera lo eliminamos
+        let statusDiv = document.getElementById('game-status');
+        if (statusDiv) statusDiv.remove();
 
-        const statusDiv = document.createElement('div');
+        statusDiv = document.createElement('div');
         statusDiv.id = 'game-status';
         const winner = status === 'white' ? 'White' : 'Black';
         statusDiv.textContent = `${winner} wins!`;
         this.gameBoard.insertAdjacentElement('afterend', statusDiv);
 
         setTimeout(() => {
-            const msg = document.getElementById('game-status');
-            if (msg) msg.remove();
+            statusDiv.remove();
         }, 5000);
-
     }
 
     showCurrentPlayer() {
@@ -506,7 +524,7 @@ export class Game {
 
         this.gameLogic = new GameLogic(this.board, this.config);
 
-        this.ui = new UI(this.gameLogic, this.start());
+        this.ui = new UI(this.gameLogic, () => this.start());
 
     }
 }
