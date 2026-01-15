@@ -401,6 +401,35 @@ export class UI {
 
         const boardSize = this.gameLogic.config.size;
 
+        for (let row = 0; row < boardSize; row++) {
+            for (let col = 0; col < boardSize; col++) {
+                const cell = document.createElement('div');
+
+                cell.classList.add('cell');
+                if ((row + col) % 2 === 0) cell.classList.add('light');
+                else cell.classList.add('dark');
+
+                cell.dataset.row = row;
+                cell.dataset.col = col;
+
+                const piece = this.gameLogic.board.getPiece(row, col);
+                if (piece) {
+                    const pieceElement = document.createElement('div');
+                    pieceElement.classList.add('piece', piece.player);
+                    cell.appendChild(pieceElement);
+                }
+
+                if (this.gameLogic.selectedPiece && this.gameLogic.selectedPiece.row === row && this.gameLogic.selectedPiece.col === col) {
+                    cell.classList.add('selected');
+                }
+
+                cell.addEventListener('click', () => {
+                    this.handleCellClick(row, col);
+                });
+
+                this.gameBoard.appendChild(cell);
+            }
+        }
 
     }
 
