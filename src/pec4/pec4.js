@@ -329,8 +329,10 @@ export class UI {
     }
 
     setupSizeInput() {
-        // Clear existing input
+        // Clear existing input, but save its value first
         const existingInput = document.getElementById('board-size');
+        // como el restart resetea absolutamente todo, guardamos el valor del input para que no se pierda
+        const savedValue = existingInput ? existingInput.value : '8';
         if (existingInput) existingInput.parentElement.remove();
 
         // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
@@ -346,7 +348,7 @@ export class UI {
         sizeInput.id = 'board-size';
         sizeInput.min = '4';
         sizeInput.max = '16';
-        sizeInput.value = '8';
+        sizeInput.value = savedValue;
         sizeInput.addEventListener('change', (event) => {
             const newSize = parseInt(event.target.value);
             // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
@@ -514,17 +516,23 @@ export class Game {
     }
 
     start() {
-        const boardSize = document.getElementById('board-size').value;
+        const boardSizeInput = document.getElementById('board-size');
         this.config = new GameConfig();
-        if (boardSize) this.config.setSize(boardSize);
+        if (boardSizeInput) this.config.setSize(boardSizeInput.value);
         this.config.initialize();
 
         this.board = new Board(this.config);
-        // this.board.generate();
+        this.board.generate();
 
         this.gameLogic = new GameLogic(this.board, this.config);
 
         this.ui = new UI(this.gameLogic, () => this.start());
 
+        this.ui.renderBoard();
+
+        this.gameLogic.checkGameOver();
+        if (this.gameLogic.gameOver) {
+            this.ui.showGameStatus(this.gameLogic.winner);
+        }
     }
 }
