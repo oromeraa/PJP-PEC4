@@ -14,8 +14,8 @@ export class Piece {
 // Exercise 1: GameConfig (1p)
 export class GameConfig {
     constructor() {
-        this.size;
-        this.currentPlayer;
+        this.size = 8;
+        this.currentPlayer = '';
         this.initialize();
     }
 
@@ -34,7 +34,6 @@ export class GameConfig {
     }
 
     initialize() {
-        this.size = 8;
         this.currentPlayer = 'white';
     }
 
@@ -330,8 +329,9 @@ export class UI {
     }
 
     setupSizeInput() {
-        // si ya existe el input, no lo creamos de nuevo
-        if (document.getElementById('board-size')) return;
+        // Clear existing input
+        const existingInput = document.getElementById('board-size');
+        if (existingInput) existingInput.parentElement.remove();
 
         // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
         const container = document.querySelector('.container');
@@ -339,16 +339,15 @@ export class UI {
         // creamos el div de control
         const controlsDiv = document.createElement('div');
         controlsDiv.id = 'controls';
-        controlsDiv.style = 'margin-top: 20px;';
 
         // creamos el input 
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.id = 'board-size';
-        input.min = '4';
-        input.max = '16';
-        input.value = '8';
-        input.addEventListener('change', (event) => {
+        const sizeInput = document.createElement('input');
+        sizeInput.type = 'number';
+        sizeInput.id = 'board-size';
+        sizeInput.min = '4';
+        sizeInput.max = '16';
+        sizeInput.value = '8';
+        sizeInput.addEventListener('change', (event) => {
             const newSize = parseInt(event.target.value);
             // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
             this.gameLogic.config.setSize(newSize);
@@ -361,15 +360,16 @@ export class UI {
 
         // insertamos el input en el div de control
         controlsDiv.appendChild(label);
-        controlsDiv.appendChild(input);
+        controlsDiv.appendChild(sizeInput);
 
         // insertamos los controles en el contenedor
         container.appendChild(controlsDiv);
     }
 
     setupRestartButton() {
-        // si ya existe el boton, no lo creamos de nuevo
-        if (document.getElementById('restart')) return;
+        // Clear existing button
+        const existingButton = document.getElementById('restart');
+        if (existingButton) existingButton.remove();
 
         const restartButton = document.createElement('button');
         restartButton.id = 'restart';
@@ -397,18 +397,20 @@ export class UI {
 
         const boardSize = this.gameLogic.config.size;
 
+        // mostramos las casillas
         for (let row = 0; row < boardSize; row++) {
             for (let col = 0; col < boardSize; col++) {
                 const cell = document.createElement('div');
-                cell.id = `cell-${row}-${col}`;
 
                 cell.classList.add('cell');
+                // pintamos las casillas, pares son blancas, impares negras
                 if ((row + col) % 2 === 0) cell.classList.add('light');
                 else cell.classList.add('dark');
 
                 cell.dataset.row = row;
                 cell.dataset.col = col;
 
+                // colocamos las fichas si la hay
                 const piece = this.gameLogic.board.getPiece(row, col);
                 if (piece) {
                     const pieceDiv = document.createElement('div');
@@ -417,14 +419,17 @@ export class UI {
                     cell.appendChild(pieceDiv);
                 }
 
+                // seleccionamos la ficha si la hay
                 if (this.gameLogic.selectedPiece && this.gameLogic.selectedPiece.row === row && this.gameLogic.selectedPiece.col === col) {
                     cell.classList.add('selected');
                 }
 
+                // agregamos el evento de click
                 cell.addEventListener('click', () => {
                     this.handleCellClick(row, col);
                 });
 
+                // agregamos la casilla al tablero
                 this.gameBoard.appendChild(cell);
             }
         }
@@ -437,17 +442,24 @@ export class UI {
         const piece = this.gameLogic.board.getPiece(row, col);
         const selectedPiece = this.gameLogic.selectedPiece;
 
+        if (!selectedPiece || selectedPiece.player !== this.gameLogic.config.currentPlayer) {
 
+        }
+
+        this.renderBoard();
+
+        if (this.gameLogic.gameOver) {
+            this.showGameStatus(this.gameLogic.winner);
+        }
     }
 
     showGameStatus(status) {
-        let statusDiv = document.getElementById('game-status');
-        if (statusDiv) statusDiv.innerHTML = '';
-        else {
-            statusDiv = document.createElement('div');
-            statusDiv.id = 'game-status';
-        }
-        const winner = this.gameLogic.winner === 'white' ? 'White' : 'Black';
+        const existingStatus = document.getElementById('game-status');
+        if (existingStatus) existingStatus.remove();
+
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'game-status';
+        const winner = status === 'white' ? 'White' : 'Black';
         statusDiv.textContent = `${winner} wins!`;
         this.gameBoard.insertAdjacentElement('afterend', statusDiv);
 
@@ -460,14 +472,17 @@ export class UI {
 
     showCurrentPlayer() {
         let playerDiv = document.getElementById('current-player');
-        if (playerDiv) playerDiv.innerHTML = '';
-        else {
+
+        // nos permite actualizar el jugador actual, sin tener que crear un nuevo divs
+        if (!playerDiv) {
             playerDiv = document.createElement('div');
             playerDiv.id = 'current-player';
+            this.gameBoard.insertAdjacentElement('beforebegin', playerDiv);
         }
 
         const player = this.gameLogic.config.currentPlayer === 'white' ? 'White' : 'Black';
         playerDiv.textContent = `Turn: ${player}`;
+
     }
 }
 
@@ -485,5 +500,13 @@ export class Game {
         this.config = new GameConfig();
         if (boardSize) this.config.setSize(boardSize);
         this.config.initialize();
+
+        this.board = new Board(this.config);
+        // this.board.generate();
+
+        this.gameLogic = new GameLogic(this.board, this.config);
+
+        this.ui = new UI(this.gameLogic, this.start());
+
     }
 }
