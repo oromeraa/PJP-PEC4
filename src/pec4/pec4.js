@@ -191,13 +191,6 @@ class GameLogic {
         if (!this.board.isEmpty(toRow, toCol))
             return false;
 
-        // es una ficha en medio y es rival?
-        const rivalRow = (fromRow + toRow) / 2;
-        const rivalCol = (fromCol + toCol) / 2;
-        const pieceToCapture = this.board.getPiece(rivalRow, rivalCol);
-        if (pieceToCapture === null || pieceToCapture.player === pieceToMove.player)
-            return false;
-
         const verticalDir = fromRow - toRow; // +2 arriba, -2 abajo
         const horizontalDir = fromCol - toCol; // +2 izquierda, -2 derecha  
 
@@ -213,6 +206,13 @@ class GameLogic {
             if (verticalDir !== pieceVerticalDir)
                 return false;
         }
+
+        // es una ficha en medio y es rival?
+        const rivalRow = (fromRow + toRow) / 2;
+        const rivalCol = (fromCol + toCol) / 2;
+        const pieceToCapture = this.board.getPiece(rivalRow, rivalCol);
+        if (pieceToCapture === null || pieceToCapture.player === pieceToMove.player)
+            return false;
 
         // entonces es válido
         return true;
@@ -264,28 +264,22 @@ class GameLogic {
     }
 
     checkGameOver() {
-        // // rastreamos todas las fichas
-        // const allPieces = this.board.flat().filter(cell => cell !== null);
-        // const blackPieces = allPieces.filter(cell => cell.player === 'black').length;
-        // const whitePieces = allPieces.length - blackPieces;
+        let whitePieces = 0;
+        let blackPieces = 0;
+        let whiteCanMove = false;
+        let blackCanMove = false;
+        let whiteCanCapture = false;
+        let blackCanCapture = false;
 
-        // // si no hay fichas de un jugador, el otro gana
-        // if (blackPieces === 0) {
-        //     this.gameOver = true;
-        //     this.winner = 'white';
-        // } else if (whitePieces === 0) {
-        //     this.gameOver = true;
-        //     this.winner = 'black';
-        // }
-
-        function hasAnyValidMove(row, col) {
+        // tengo que crearlas como const para que puedan acceder a this, o crearlas fuera de la función y dentro de la clase.
+        // para que no modifique la estructura de la clase, las defino como funciones flecha
+        const anyValidMove = (row, col) => {
             return this.isValidMove(row, col, row + 1, col + 1) ||
                 this.isValidMove(row, col, row + 1, col - 1) ||
                 this.isValidMove(row, col, row - 1, col + 1) ||
                 this.isValidMove(row, col, row - 1, col - 1);
         }
-
-        function hasAnyValidCapture(row, col) {
+        const anyValidCapture = (row, col) => {
             return this.isValidCapture(row, col, row + 2, col + 2) ||
                 this.isValidCapture(row, col, row + 2, col - 2) ||
                 this.isValidCapture(row, col, row - 2, col + 2) ||
@@ -298,22 +292,39 @@ class GameLogic {
                 if (piece) {
                     if (piece.player === 'white') {
                         whitePieces++;
-                        if (!whiteHasMoves)
-                            whiteHasMoves = hasAnyValidMove(row, col);
-                        if (!whiteHasCaptures)
-                            whiteHasCaptures = hasAnyValidCapture(row, col);
+                        // como gusta la eficiencia, sólo calculamos si puede moverse o capturar si no lo ha hecho antes
+                        // solo con que una ficha pueda moverse o capturar, el jugador puede moverse con lo que no está todo perdido
+                        if (!whiteCanMove)
+                            whiteCanMove = anyValidMove(row, col);
+                        if (!whiteCanCapture)
+                            whiteCanCapture = anyValidCapture(row, col);
                     } else {
                         blackPieces++;
-                        if (!blackHasMoves)
-                            blackHasMoves = hasAnyValidMove(row, col);
-                        if (!blackHasCaptures)
-                            blackHasCaptures = hasAnyValidCapture(row, col);
+                        if (!blackCanMove)
+                            blackCanMove = anyValidMove(row, col);
+                        if (!blackCanCapture)
+                            blackCanCapture = anyValidCapture(row, col);
                     }
                 }
             }
         }
 
-
+        // si no hay fichas de un jugador, el otro gana
+        if (whitePieces === 0) {
+            this.gameOver = true;
+            this.winner = 'black';
+        } else if (blackPieces === 0) {
+            this.gameOver = true;
+            this.winner = 'white';
+        }
+        // si el jugador actual no puede moverse ni capturar, pierde
+        else if (this.config.currentPlayer === 'white' && !whiteCanMove && !whiteCanCapture) {
+            this.gameOver = true;
+            this.winner = 'black';
+        } else if (this.config.currentPlayer === 'black' && !blackCanMove && !blackCanCapture) {
+            this.gameOver = true;
+            this.winner = 'white';
+        }
     }
 }
 
