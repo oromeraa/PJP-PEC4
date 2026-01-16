@@ -344,13 +344,13 @@ export class UI {
         if (existingInput) {
             existingInput.removeEventListener('change', this.changeSizeEventListener);
             controlsDiv = existingInput.parentElement;
-            controlsDiv.replaceChildren();
+            // controlsDiv.replaceChildren();
         }
 
         // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
         const container = document.querySelector('.container');
 
-        // creamos el div de control
+        // creamos el div de control si no existía antes
         if (!controlsDiv)
             controlsDiv = document.createElement('div');
         controlsDiv.id = 'controls';
@@ -370,8 +370,7 @@ export class UI {
         label.textContent = 'Board size: ';
 
         // insertamos el input en el div de control
-        controlsDiv.appendChild(label);
-        controlsDiv.appendChild(sizeInput);
+        controlsDiv.replaceChildren(label, sizeInput);
 
         // insertamos los controles en el contenedor
         container.appendChild(controlsDiv);
@@ -472,6 +471,7 @@ export class UI {
                 });
 
                 // agregamos la casilla al tablero
+                // no uso el replaceChildren porque debo añadir de uno en uno
                 this.gameBoard.appendChild(cell);
             }
         }
