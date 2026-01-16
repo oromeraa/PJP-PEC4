@@ -328,10 +328,22 @@ export class UI {
         this.setupRestartButton();
     }
 
+    // No sé si es la mejor opción pero para poder eliminar el eventListener tal y como se recomienda en la teoría, 
+    // lo he definido fuera del setupSizeInput. Si no intentaría eliminar un listener que no se conserva ya que se genera 
+    // en cada llamada a setupSizeInput. No coincidirian la refierencia y no haría nada.
+    changeSizeEventListener = (event) => {
+        const newSize = parseInt(event.target.value);
+        // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
+        this.gameLogic.config.setSize(newSize);
+    }
+
     setupSizeInput() {
         // Clear existing input, but save its value first
         const existingInput = document.getElementById('board-size');
-        if (existingInput) existingInput.parentElement.remove();
+        if (existingInput) {
+            existingInput.removeEventListener('change', this.changeSizeEventListener);
+            existingInput.parentElement.remove();
+        }
 
         // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
         const container = document.querySelector('.container');
@@ -347,11 +359,7 @@ export class UI {
         sizeInput.min = '4';
         sizeInput.max = '16';
         sizeInput.value = this.gameLogic.config.size;
-        sizeInput.addEventListener('change', (event) => {
-            const newSize = parseInt(event.target.value);
-            // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
-            this.gameLogic.config.setSize(newSize);
-        });
+        sizeInput.addEventListener('change', this.changeSizeEventListener);
 
         // creamos el label
         const label = document.createElement('label');
@@ -366,24 +374,34 @@ export class UI {
         container.appendChild(controlsDiv);
     }
 
+    // Lo mismo que el anterior pero para el botón de reiniciar
+    restartEventListener = () => {
+        // eliminamos los elementos del tablero
+        const gameStatus = document.getElementById('game-status');
+        if (gameStatus)
+            gameStatus.remove();
+
+        const currentPlayer = document.getElementById('current-player');
+        if (currentPlayer)
+            currentPlayer.remove();
+
+        // validamos por si no se ha pasado el callback
+        if (this.onRestart && typeof this.onRestart === 'function')
+            this.onRestart();
+    }
+
     setupRestartButton() {
         // Clear existing button
         let restartButton = document.getElementById('restart');
-        if (restartButton) restartButton.remove();
+        if (restartButton) {
+            restartButton.removeEventListener('click', this.restartEventListener);
+            restartButton.remove();
+        }
 
         restartButton = document.createElement('button');
         restartButton.id = 'restart';
         restartButton.textContent = 'Restart Match';
-        restartButton.addEventListener('click', () => {
-            // eliminamos los elementos del tablero
-            const gameStatus = document.getElementById('game-status');
-            if (gameStatus) gameStatus.remove();
-            const currentPlayer = document.getElementById('current-player');
-            if (currentPlayer) currentPlayer.remove();
-
-            // validamos por si no se ha pasado el callback
-            if (this.onRestart && typeof this.onRestart === 'function') this.onRestart();
-        });
+        restartButton.addEventListener('click', this.restartEventListener);
 
         document.getElementById('controls').appendChild(restartButton);
     }
@@ -521,7 +539,6 @@ export class UI {
 
         const player = this.gameLogic.config.currentPlayer === 'white' ? 'White' : 'Black';
         playerDiv.textContent = `Turn: ${player}`;
-
     }
 }
 
