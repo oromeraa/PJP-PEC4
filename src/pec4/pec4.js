@@ -340,16 +340,19 @@ export class UI {
     setupSizeInput() {
         // Clear existing input, but save its value first
         const existingInput = document.getElementById('board-size');
+        let controlsDiv = null;
         if (existingInput) {
             existingInput.removeEventListener('change', this.changeSizeEventListener);
-            existingInput.parentElement.remove();
+            controlsDiv = existingInput.parentElement;
+            controlsDiv.replaceChildren();
         }
 
         // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
         const container = document.querySelector('.container');
 
         // creamos el div de control
-        const controlsDiv = document.createElement('div');
+        if (!controlsDiv)
+            controlsDiv = document.createElement('div');
         controlsDiv.id = 'controls';
 
         // creamos el input 
@@ -408,7 +411,7 @@ export class UI {
 
     renderBoard() {
         // eliminamos el tablero si existe
-        this.gameBoard.innerHTML = '';
+        this.gameBoard.replaceChildren();
 
         // creamos el tablero
         this.gameBoard.classList.add('game-board', 'checkerboard');
