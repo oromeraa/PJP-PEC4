@@ -15,7 +15,7 @@ export class Piece {
 export class GameConfig {
     constructor() {
         this.size = 8;
-        this.currentPlayer = '';
+        this.currentPlayer = 'white';
         this.initialize();
     }
 
@@ -331,8 +331,6 @@ export class UI {
     setupSizeInput() {
         // Clear existing input, but save its value first
         const existingInput = document.getElementById('board-size');
-        // como el restart resetea absolutamente todo, guardamos el valor del input para que no se pierda
-        const savedValue = existingInput ? existingInput.value : '8';
         if (existingInput) existingInput.parentElement.remove();
 
         // obtenemos el primer elemnto con la clase container, con el getElementsByName nos devuelve un array. Esto debería ser más eficiente
@@ -348,7 +346,7 @@ export class UI {
         sizeInput.id = 'board-size';
         sizeInput.min = '4';
         sizeInput.max = '16';
-        sizeInput.value = savedValue;
+        sizeInput.value = this.gameLogic.config.size;
         sizeInput.addEventListener('change', (event) => {
             const newSize = parseInt(event.target.value);
             // almacenamos el nuevo tamaño del tablero, pero hasta que no se reinicie el juego no se aplica
@@ -399,12 +397,29 @@ export class UI {
 
         const boardSize = this.gameLogic.config.size;
 
+        // -------------------
+        // 
+        // Estos ajuste los hago para que le comportamiento sea como el del gif. Hay que limitar el 
+        // tamaño máximo de celda para tableros grandes, ya que si no, no caben en el contenedor.
+        // En el foro se comenta que no hace falta modificar el css para realizar la práctica pero 
+        // la verdad es que no se me ocurre como hacerlo sin tocar el css aunque sea por JS
+        const maxBoardSize = 560; // 600px menos el padding
+        const cellSize = Math.min(60, Math.floor(maxBoardSize / boardSize));
+        this.gameBoard.style.gridTemplateColumns = `repeat(${boardSize}, ${cellSize}px)`;
+        this.gameBoard.style.gridTemplateRows = `repeat(${boardSize}, ${cellSize}px)`;
+        // -------------------
+
         // mostramos las casillas
         for (let row = 0; row < boardSize; row++) {
             for (let col = 0; col < boardSize; col++) {
                 const cell = document.createElement('div');
 
                 cell.classList.add('cell');
+
+                // aplicamos el tamaño de celda calculado
+                cell.style.width = `${cellSize}px`;
+                cell.style.height = `${cellSize}px`;
+
                 // pintamos las casillas, pares son blancas, impares negras
                 if ((row + col) % 2 === 0) cell.classList.add('light');
                 else cell.classList.add('dark');
@@ -418,6 +433,10 @@ export class UI {
                     const pieceDiv = document.createElement('div');
                     pieceDiv.classList.add('piece', piece.player);
                     if (piece.isKing) pieceDiv.classList.add('king');
+                    // ajustamos el tamaño de la pieza proporcionalmente
+                    const pieceSize = Math.floor(cellSize * 0.8);
+                    pieceDiv.style.width = `${pieceSize}px`;
+                    pieceDiv.style.height = `${pieceSize}px`;
                     cell.appendChild(pieceDiv);
                 }
 
@@ -517,12 +536,12 @@ export class Game {
 
     start() {
         const boardSizeInput = document.getElementById('board-size');
-        this.config = new GameConfig();
-        if (boardSizeInput) this.config.setSize(boardSizeInput.value);
-        this.config.initialize();
+        // como el restart resetea absolutamente todo, guardamos el valor del input para que no se pierda
+        const boardSize = boardSizeInput ? parseInt(boardSizeInput.value, 10) : 8;
+        this.config = new GameConfig(); // ya hace el initialize
+        this.config.setSize(boardSize);
 
-        this.board = new Board(this.config);
-        this.board.generate();
+        this.board = new Board(this.config); // ya hace el generate
 
         this.gameLogic = new GameLogic(this.board, this.config);
 
